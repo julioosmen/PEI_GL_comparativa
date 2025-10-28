@@ -1,7 +1,7 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 
-def comparar_oei(archivo_estandar, df_oei):
+def comparar_oei(ruta_estandar, df_oei):
     """
     Compara la tabla OEI extraída del PEI con la tabla estándar.
     Devuelve un DataFrame con los resultados.
@@ -15,7 +15,7 @@ def comparar_oei(archivo_estandar, df_oei):
     COLUMNA_COMPARAR_CODIGO = "Código"
     UMBRAL_SIMILITUD = 0.75
 
-    df_estandar = pd.read_excel(archivo_estandar, sheet_name=HOJA_ESTANDAR)
+    df_estandar = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR)
     df_comparar = df_oei.copy()
 
     df_estandar[COLUMNA_ESTANDAR_TEXTO] = df_estandar[COLUMNA_ESTANDAR_TEXTO].astype(str).str.strip()
@@ -51,4 +51,19 @@ def comparar_oei(archivo_estandar, df_oei):
             "Resultado": categoria
         })
 
-    return pd.DataFrame(resultados)
+    #return pd.DataFrame(resultados)
+    df_resultado = pd.DataFrame(resultados)
+
+    # ---- 🔵 APLICAR COLORES ----
+    def color_fila(row):
+        if row["Resultado"] == "Coincidencia exacta":
+            color = "background-color: lightgreen"
+        elif row["Resultado"] == "Coincidencia parcial":
+            color = "background-color: khaki"
+        else:
+            color = "background-color: lightcoral"
+        return [color] * len(row)
+
+    df_styled = df_resultado.style.apply(color_fila, axis=1)
+
+    return df_styled
