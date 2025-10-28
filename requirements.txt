@@ -1,0 +1,7 @@
+streamlit
+pandas
+camelot-py[cv]
+python-docx
+sentence-transformers
+torch
+openpyxl
