@@ -13,6 +13,11 @@ UMBRAL_SIMILITUD = 0.75
 
 def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
     """I ntenta leer el Excel considerando que el encabezado puede estar en la fila 1 o 2."""
+    
+    # ✅ Si ya es un DataFrame, no vuelvas a leerlo
+    if isinstance(ruta, pd.DataFrame):
+        return ruta
+
     try:
         df = pd.read_excel(ruta, sheet_name=sheet_name)
         if len(df.columns) == 1:
