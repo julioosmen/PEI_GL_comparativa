@@ -10,7 +10,6 @@ COLUMNA_COMPARAR_TEXTO = "denominación"  # nombre base que queremos encontrar
 COLUMNA_COMPARAR_CODIGO = "código"
 UMBRAL_SIMILITUD = 0.75
 
-
 def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
     """I ntenta leer el Excel considerando que el encabezado puede estar en la fila 1 o 2."""
     
@@ -26,15 +25,6 @@ def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
         df = pd.read_excel(ruta, sheet_name=sheet_name, header=1)
     return df
 
-
-def buscar_columna_similar(nombre_columna_objetivo, columnas_disponibles):
-    """Encuentra el nombre de columna más parecido al buscado (tolerante a tildes o diferencias leves)."""
-    columnas_disponibles = [c.strip().lower() for c in columnas_disponibles]
-    nombre_columna_objetivo = nombre_columna_objetivo.strip().lower()
-    coincidencias = difflib.get_close_matches(nombre_columna_objetivo, columnas_disponibles, n=1, cutoff=0.6)
-    return coincidencias[0] if coincidencias else None
-
-
 def comparar_aei(ruta_estandar, archivo_comparar):
     print("🔹 Cargando modelo de embeddings...")
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -43,31 +33,51 @@ def comparar_aei(ruta_estandar, archivo_comparar):
     df_estandar = leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=HOJA_ESTANDAR)
     df_comparar = leer_excel_con_encabezado_dinamico(archivo_comparar)
 
-    # Normalizar encabezados
-    df_estandar.columns = df_estandar.columns.str.strip().str.lower()
-    df_comparar.columns = df_comparar.columns.str.strip().str.lower()
+    # === Limpieza y normalización avanzada de encabezados ===
+    def limpiar_encabezados(df):
+        df.columns = (
+            df.columns.astype(str)
+            .str.strip()
+            .str.lower()
+            .str.normalize("NFKD")  # elimina tildes
+            .str.encode("ascii", errors="ignore")
+            .str.decode("utf-8")
+            .str.replace(r"[^a-z0-9 ]", "", regex=True)
+        )
+        return df
+
+    df_estandar = limpiar_encabezados(df_estandar)
+    df_comparar = limpiar_encabezados(df_comparar)
 
     print("\n📋 Columnas detectadas en el archivo estándar:", df_estandar.columns.tolist())
     print("📋 Columnas detectadas en el archivo a comparar:", df_comparar.columns.tolist())
 
-    # Buscar columnas más parecidas
+    # === Buscar columnas más parecidas ===
+    def buscar_columna_similar(nombre_columna_objetivo, columnas_disponibles):
+        """Encuentra el nombre de columna más parecido al buscado."""
+        import difflib
+        columnas_disponibles = [c.strip().lower() for c in columnas_disponibles]
+        nombre_columna_objetivo = nombre_columna_objetivo.strip().lower()
+        coincidencias = difflib.get_close_matches(nombre_columna_objetivo, columnas_disponibles, n=1, cutoff=0.4)
+        return coincidencias[0] if coincidencias else None
+
     col_texto_estandar = buscar_columna_similar(COLUMNA_ESTANDAR_TEXTO, df_estandar.columns)
     col_codigo_estandar = buscar_columna_similar(COLUMNA_ESTANDAR_CODIGO, df_estandar.columns)
     col_texto_comparar = buscar_columna_similar(COLUMNA_COMPARAR_TEXTO, df_comparar.columns)
     col_codigo_comparar = buscar_columna_similar(COLUMNA_COMPARAR_CODIGO, df_comparar.columns)
 
-    print("\n🧠 Columnas disponibles en estándar:", df_estandar.columns.tolist())
-    print("🧠 Columnas disponibles en comparar:", df_comparar.columns.tolist())
-    print(f"🔎 Columna texto estándar: {col_texto_estandar}")
-    print(f"🔎 Columna código estándar: {col_codigo_estandar}")
-    print(f"🔎 Columna texto comparar: {col_texto_comparar}")
-    print(f"🔎 Columna código comparar: {col_codigo_comparar}")
+    print(f"\n🔎 Columna texto estándar encontrada: {col_texto_estandar}")
+    print(f"🔎 Columna código estándar encontrada: {col_codigo_estandar}")
+    print(f"🔎 Columna texto comparar encontrada: {col_texto_comparar}")
+    print(f"🔎 Columna código comparar encontrada: {col_codigo_comparar}")
 
     if not all([col_texto_estandar, col_codigo_estandar, col_texto_comparar, col_codigo_comparar]):
-        raise KeyError("❌ No se encontraron las columnas necesarias. Verifica los encabezados del archivo Excel.")
-
-    print(f"\n✅ Columna de texto (comparar): '{col_texto_comparar}'")
-    print(f"✅ Columna de texto (estándar): '{col_texto_estandar}'")
+        raise KeyError(
+            "❌ No se encontraron las columnas necesarias.\n"
+            f"🧠 Columnas estándar: {df_estandar.columns.tolist()}\n"
+            f"🧠 Columnas comparar: {df_comparar.columns.tolist()}\n"
+            "Verifica que los encabezados contengan al menos palabras similares a las configuradas."
+        )
 
     # === Limpieza de texto ===
     df_estandar[col_texto_estandar] = df_estandar[col_texto_estandar].astype(str).str.strip().str.lower()
