@@ -56,6 +56,13 @@ def comparar_aei(ruta_estandar, archivo_comparar):
     col_texto_comparar = buscar_columna_similar(COLUMNA_COMPARAR_TEXTO, df_comparar.columns)
     col_codigo_comparar = buscar_columna_similar(COLUMNA_COMPARAR_CODIGO, df_comparar.columns)
 
+    print("\n🧠 Columnas disponibles en estándar:", df_estandar.columns.tolist())
+    print("🧠 Columnas disponibles en comparar:", df_comparar.columns.tolist())
+    print(f"🔎 Columna texto estándar: {col_texto_estandar}")
+    print(f"🔎 Columna código estándar: {col_codigo_estandar}")
+    print(f"🔎 Columna texto comparar: {col_texto_comparar}")
+    print(f"🔎 Columna código comparar: {col_codigo_comparar}")
+
     if not all([col_texto_estandar, col_codigo_estandar, col_texto_comparar, col_codigo_comparar]):
         raise KeyError("❌ No se encontraron las columnas necesarias. Verifica los encabezados del archivo Excel.")
 
