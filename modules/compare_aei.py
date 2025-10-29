@@ -11,7 +11,7 @@ COLUMNA_COMPARAR_CODIGO = "código"
 UMBRAL_SIMILITUD = 0.75
 
 
-def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
+def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=HOJA_ESTANDAR):
     """
     Lee un archivo Excel detectando automáticamente la fila que contiene el encabezado real.
     Ignora filas de título (como 'Acciones Estratégicas del OEI').
@@ -22,7 +22,7 @@ def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
         return ruta_estandar
 
     # Leer las primeras filas sin encabezado
-    df_preview = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=None, nrows=8)
+    df_preview = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR, header=None, nrows=8)
 
     # Palabras clave típicas en encabezados de PEI
     claves = ["codigo", "denominacion", "indicador", "acciones", "objetivo"]
@@ -44,7 +44,7 @@ def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
         fila_encabezado = 0
 
     # Leer de nuevo el archivo usando esa fila como encabezado
-    df = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=fila_encabezado)
+    df = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR, header=fila_encabezado)
 
     # Limpiar encabezados
     df.columns = (
@@ -60,7 +60,7 @@ def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
     return df
 
 
-def comparar_aei(ruta_estandar, archivo_comparar, usar_streamlit=False):
+def comparar_aei(ruta_estandar, df_aei, usar_streamlit=False):
     """
     Compara las AEI del PEI con la tabla estándar.
     Si usar_streamlit=True, usa st.error() en lugar de raise KeyError.
@@ -73,7 +73,7 @@ def comparar_aei(ruta_estandar, archivo_comparar, usar_streamlit=False):
 
     # === Leer ambos archivos ===
     df_estandar = leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=HOJA_ESTANDAR)
-    df_comparar = leer_excel_con_encabezado_dinamico(archivo_comparar)
+    df_comparar = leer_excel_con_encabezado_dinamico(df_aei)
 
     # === Normalizar encabezados ===
     def limpiar_encabezados(df):
