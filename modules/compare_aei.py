@@ -11,18 +11,18 @@ COLUMNA_COMPARAR_CODIGO = "código"
 UMBRAL_SIMILITUD = 0.75
 
 
-def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
+def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
     """
     Lee un Excel detectando automáticamente la fila que contiene el encabezado real.
     Considera casos donde la segunda fila es el encabezado (muy común en PEI).
     """
 
     # ✅ Si ya es un DataFrame, simplemente devuélvelo
-    if isinstance(ruta, pd.DataFrame):
+    if isinstance(ruta_estandar, pd.DataFrame):
         return ruta
 
     # Leemos sin encabezado para poder inspeccionar las primeras filas
-    df_preview = pd.read_excel(ruta, sheet_name=sheet_name, header=None, nrows=5)
+    df_preview = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=None, nrows=5)
 
     # Posibles palabras clave que suelen aparecer en los encabezados
     palabras_clave = ["código", "denominación", "indicador", "denominación de OEI / AEI", "descripción"]
@@ -36,10 +36,20 @@ def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
             break
 
     # Leer nuevamente usando esa fila como encabezado
-    df = pd.read_excel(ruta, sheet_name=sheet_name, header=fila_encabezado)
+    df = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=fila_encabezado)
 
+    # Limpiar encabezados (quitar tildes, espacios, mayúsculas, etc.)
+    df.columns = (
+        df.columns.astype(str)
+        .str.strip()
+        .str.lower()
+        .str.normalize("NFKD")
+        .str.encode("ascii", errors="ignore")
+        .str.decode("utf-8")
+        .str.replace(r"[^a-z0-9 ]", "", regex=True)
+    )
+    
     return df
-
 
 
 def comparar_aei(ruta_estandar, archivo_comparar, usar_streamlit=False):
