@@ -11,42 +11,32 @@ COLUMNA_COMPARAR_CODIGO = "código"
 UMBRAL_SIMILITUD = 0.75
 
 
-def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=HOJA_ESTANDAR):
+def leer_excel_con_encabezado_dinamico(archivo, sheet_name=None):
     """
-    Lee un archivo Excel detectando automáticamente la fila que contiene el encabezado real.
-    Ignora filas de título (como 'Acciones Estratégicas del OEI').
+    Lee un archivo Excel o DataFrame detectando automáticamente la fila del encabezado.
+    Útil cuando el PEI tiene títulos en la primera fila (como 'Acciones Estratégicas del OEI').
     """
+    # Si ya es un DataFrame (caso Streamlit o tablas extraídas), devolverlo directamente
+    if isinstance(archivo, pd.DataFrame):
+        df = archivo.copy()
+    else:
+        df = pd.read_excel(archivo, sheet_name=sheet_name, header=None)
 
-    # ✅ Si ya es un DataFrame, devolver directamente
-    if isinstance(ruta_estandar, pd.DataFrame):
-        return ruta_estandar
+    # Buscar la fila del encabezado (dentro de las primeras 6)
+    posibles_encabezados = ["codigo", "denominacion", "indicador", "acciones", "objetivo", "descripcion"]
+    fila_encabezado = 0
 
-    # Leer las primeras filas sin encabezado
-    df_preview = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR, header=None, nrows=8)
-
-    # Palabras clave típicas en encabezados de PEI
-    claves = ["codigo", "denominacion", "indicador", "acciones", "objetivo"]
-
-    fila_encabezado = None
-    for i, fila in df_preview.iterrows():
-        # Concatenar texto de toda la fila
-        texto_fila = " ".join(str(x).lower() for x in fila.tolist())
-        # Contar cuántas celdas tienen texto no vacío
-        num_textos = sum(bool(str(x).strip()) for x in fila.tolist())
-
-        # Condición: que haya al menos 2 textos y una palabra clave
-        if num_textos >= 2 and any(clave in texto_fila for clave in claves):
+    for i in range(min(6, len(df))):
+        fila_texto = " ".join(str(x).lower() for x in df.iloc[i].tolist())
+        if any(palabra in fila_texto for palabra in posibles_encabezados):
             fila_encabezado = i
             break
 
-    # Si no encontró, usar fila 0 por defecto
-    if fila_encabezado is None:
-        fila_encabezado = 0
+    # Si el archivo no era un DataFrame, lo relee con el encabezado correcto
+    if not isinstance(archivo, pd.DataFrame):
+        df = pd.read_excel(archivo, sheet_name=sheet_name, header=fila_encabezado)
 
-    # Leer de nuevo el archivo usando esa fila como encabezado
-    df = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR, header=fila_encabezado)
-
-    # Limpiar encabezados
+    # Limpieza de nombres de columnas
     df.columns = (
         df.columns.astype(str)
         .str.strip()
