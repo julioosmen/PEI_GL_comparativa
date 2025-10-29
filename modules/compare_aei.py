@@ -13,32 +13,42 @@ UMBRAL_SIMILITUD = 0.75
 
 def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
     """
-    Lee un Excel detectando automáticamente la fila que contiene el encabezado real.
-    Considera casos donde la segunda fila es el encabezado (muy común en PEI).
+    Lee un archivo Excel detectando automáticamente la fila que contiene el encabezado real.
+    Ignora filas de título (como 'Acciones Estratégicas del OEI').
     """
 
-    # ✅ Si ya es un DataFrame, simplemente devuélvelo
+    # ✅ Si ya es un DataFrame, devolver directamente
     if isinstance(ruta_estandar, pd.DataFrame):
         return ruta
 
-    # Leemos sin encabezado para poder inspeccionar las primeras filas
-    df_preview = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=None, nrows=5)
+    import pandas as pd
 
-    # Posibles palabras clave que suelen aparecer en los encabezados
-    palabras_clave = ["código", "denominación", "indicador", "denominación de OEI / AEI", "descripción"]
+    # Leer las primeras filas sin encabezado
+    df_preview = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=None, nrows=8)
 
-    # Buscar fila que tenga coincidencias con las palabras clave
-    fila_encabezado = 0
+    # Palabras clave típicas en encabezados de PEI
+    claves = ["codigo", "denominacion", "indicador", "acciones", "objetivo"]
+
+    fila_encabezado = None
     for i, fila in df_preview.iterrows():
+        # Concatenar texto de toda la fila
         texto_fila = " ".join(str(x).lower() for x in fila.tolist())
-        if any(p in texto_fila for p in palabras_clave):
+        # Contar cuántas celdas tienen texto no vacío
+        num_textos = sum(bool(str(x).strip()) for x in fila.tolist())
+
+        # Condición: que haya al menos 2 textos y una palabra clave
+        if num_textos >= 2 and any(clave in texto_fila for clave in claves):
             fila_encabezado = i
             break
 
-    # Leer nuevamente usando esa fila como encabezado
+    # Si no encontró, usar fila 0 por defecto
+    if fila_encabezado is None:
+        fila_encabezado = 0
+
+    # Leer de nuevo el archivo usando esa fila como encabezado
     df = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=fila_encabezado)
 
-    # Limpiar encabezados (quitar tildes, espacios, mayúsculas, etc.)
+    # Limpiar encabezados
     df.columns = (
         df.columns.astype(str)
         .str.strip()
@@ -48,7 +58,7 @@ def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
         .str.decode("utf-8")
         .str.replace(r"[^a-z0-9 ]", "", regex=True)
     )
-    
+
     return df
 
 
