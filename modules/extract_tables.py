@@ -14,6 +14,26 @@ except ImportError:
     Document = None
 
 
+def detectar_fila_encabezado(dataframe):
+    """
+    Detecta la fila que contiene los encabezados correctos.
+    Usa heurísticas simples: más celdas no vacías, presencia de palabras clave comunes.
+    """
+    palabras_clave = ["denominación", "acción", "objetivo", "indicador", "meta"]
+    mejor_fila = 0
+    mejor_puntaje = 0
+
+    for i, fila in enumerate(dataframe.values):
+        texto = [str(x).lower() for x in fila]
+        puntaje = sum(1 for x in texto if any(p in x for p in palabras_clave))
+        puntaje += sum(1 for x in texto if x.strip() != "")
+        if puntaje > mejor_puntaje:
+            mejor_puntaje = puntaje
+            mejor_fila = i
+
+    return mejor_fila
+
+
 def extraer_tablas(archivo):
     """
     Extrae las tablas OEI y AEI de un archivo PDF o Word del PEI.
@@ -48,9 +68,10 @@ def extraer_tablas(archivo):
                 df = tabla.df
                 texto_tabla = " ".join(df.astype(str).values.flatten())
                 if any(p.lower() in texto_tabla.lower() for p in palabras_clave):
-                    df.columns = df.iloc[0]
-                    df = df[1:].reset_index(drop=True)
-                    df = df.loc[:, ~df.columns.duplicated()]  # elimina columnas duplicadas
+                    fila_header = detectar_fila_encabezado(df)
+                    df.columns = df.iloc[fila_header]
+                    df = df[fila_header + 1:].reset_index(drop=True)
+                    df = df.loc[:, ~df.columns.duplicated()]
                     tablas_encontradas[nombre] = df
                     break
 
@@ -68,10 +89,10 @@ def extraer_tablas(archivo):
                     data = [[celda.text.strip() for celda in fila.cells] for fila in tabla.rows]
                     texto_tabla = " ".join(" ".join(fila) for fila in data)
                     if any(p.lower() in texto_tabla.lower() for p in palabras_clave):
-                        if len(data) > 1:
-                            df = pd.DataFrame(data[1:], columns=data[0])
-                        else:
-                            df = pd.DataFrame(data)
+                        df = pd.DataFrame(data)
+                        fila_header = detectar_fila_encabezado(df)
+                        df.columns = df.iloc[fila_header]
+                        df = df[fila_header + 1:].reset_index(drop=True)
                         df = df.loc[:, ~df.columns.duplicated()]
                         tablas_encontradas[nombre] = df
                         break
