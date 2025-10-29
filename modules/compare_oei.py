@@ -7,16 +7,8 @@ def comparar_oei(ruta_estandar, df_oei):
     Compara la tabla OEI extraída del PEI con la tabla estándar.
     Devuelve un DataFrame con los resultados.
     """
-    #modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-    try:
-        modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
-    except Exception as e:
-        if usar_streamlit:
-            st.error(f"❌ Error al cargar el modelo de comparación: {e}")
-        else:
-            raise e
-        return None
-        
+    modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+       
     HOJA_ESTANDAR = "OEI"
     COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
     COLUMNA_ESTANDAR_CODIGO = "Código"
