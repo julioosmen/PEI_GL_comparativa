@@ -12,17 +12,34 @@ UMBRAL_SIMILITUD = 0.75
 
 
 def leer_excel_con_encabezado_dinamico(ruta, sheet_name=None):
-    """Intenta leer el Excel considerando que el encabezado puede estar en la fila 1 o 2."""
+    """
+    Lee un Excel detectando automáticamente la fila que contiene el encabezado real.
+    Considera casos donde la segunda fila es el encabezado (muy común en PEI).
+    """
+
+    # ✅ Si ya es un DataFrame, simplemente devuélvelo
     if isinstance(ruta, pd.DataFrame):
         return ruta
 
-    try:
-        df = pd.read_excel(ruta, sheet_name=sheet_name)
-        if len(df.columns) == 1:
-            df = pd.read_excel(ruta, sheet_name=sheet_name, header=1)
-    except Exception:
-        df = pd.read_excel(ruta, sheet_name=sheet_name, header=1)
+    # Leemos sin encabezado para poder inspeccionar las primeras filas
+    df_preview = pd.read_excel(ruta, sheet_name=sheet_name, header=None, nrows=5)
+
+    # Posibles palabras clave que suelen aparecer en los encabezados
+    palabras_clave = ["código", "denominación", "indicador", "denominación de OEI / AEI", "descripción"]
+
+    # Buscar fila que tenga coincidencias con las palabras clave
+    fila_encabezado = 0
+    for i, fila in df_preview.iterrows():
+        texto_fila = " ".join(str(x).lower() for x in fila.tolist())
+        if any(p in texto_fila for p in palabras_clave):
+            fila_encabezado = i
+            break
+
+    # Leer nuevamente usando esa fila como encabezado
+    df = pd.read_excel(ruta, sheet_name=sheet_name, header=fila_encabezado)
+
     return df
+
 
 
 def comparar_aei(ruta_estandar, archivo_comparar, usar_streamlit=False):
