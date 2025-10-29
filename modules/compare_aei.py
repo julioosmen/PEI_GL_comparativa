@@ -19,9 +19,7 @@ def leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=None):
 
     # ✅ Si ya es un DataFrame, devolver directamente
     if isinstance(ruta_estandar, pd.DataFrame):
-        return ruta
-
-    import pandas as pd
+        return ruta_estandar
 
     # Leer las primeras filas sin encabezado
     df_preview = pd.read_excel(ruta_estandar, sheet_name=sheet_name, header=None, nrows=8)
