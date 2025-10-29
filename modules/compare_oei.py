@@ -1,6 +1,6 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
-import streamlit as st if usar_streamlit else None
+#import streamlit as st if usar_streamlit else None
 
 def comparar_oei(ruta_estandar, df_oei):
     """
