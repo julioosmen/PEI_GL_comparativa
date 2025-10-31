@@ -16,6 +16,7 @@ def comparar_oei(ruta_estandar, df_oei):
         "Denominación de OEI",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
+        "OBJETIVOS ESTRATEGICOS INSTITUCIONAL",
         "Denominación de OEI / AEI / AO",
         "Descripción"
     ]    
