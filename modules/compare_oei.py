@@ -12,8 +12,19 @@ def comparar_oei(ruta_estandar, df_oei):
     HOJA_ESTANDAR = "OEI"
     COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
     COLUMNA_ESTANDAR_CODIGO = "Código"
-    COLUMNA_COMPARAR_TEXTO = "Denominación de OEI"
-    COLUMNA_COMPARAR_CODIGO = "Código"
+    COLUMNA_COMPARAR_TEXTO = [
+        "Denominación de OEI"
+        "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
+        "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
+        "Denominación de OEI / AEI / AO",
+        "Descripción"
+    ]    
+    COLUMNA_COMPARAR_CODIGO = [
+        "Código",
+        "CODIGO",
+        "Código OEI",
+        "Cod OEI"
+    ]
     UMBRAL_SIMILITUD = 0.75
 
     df_estandar = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR)
