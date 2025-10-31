@@ -13,7 +13,7 @@ def comparar_oei(ruta_estandar, df_oei):
     COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
     COLUMNA_ESTANDAR_CODIGO = "Código"
     COLUMNA_COMPARAR_TEXTO = [
-        "Denominación de OEI"
+        "Denominación de OEI",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
         "Denominación de OEI / AEI / AO",
