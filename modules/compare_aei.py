@@ -1,155 +1,60 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
-import difflib
+#import streamlit as st if usar_streamlit else None
 
-# === CONFIGURACIÓN ===
-HOJA_ESTANDAR = "AEI"
-COLUMNA_ESTANDAR_TEXTO = "denominación de oei / aei / ao"
-COLUMNA_ESTANDAR_CODIGO = "código"
-COLUMNA_COMPARAR_TEXTO = "denominación"
-COLUMNA_COMPARAR_CODIGO = "código"
-UMBRAL_SIMILITUD = 0.75
-
-
-def leer_excel_con_encabezado_dinamico(archivo, sheet_name=None):
+def comparar_aei(ruta_estandar, df_aei):
     """
-    Lee un archivo Excel detectando automáticamente la fila que contiene el encabezado real.
-    Ignora filas de título como 'Acciones Estratégicas del OEI'.
-    Muestra información diagnóstica sobre la detección.
+    Compara la tabla AEI extraída del PEI con la tabla estándar.
+    Devuelve un DataFrame con los resultados.
     """
-    import pandas as pd
-
-    # Si ya es un DataFrame, devolver directamente
-    if isinstance(archivo, pd.DataFrame):
-        print("📘 El parámetro recibido ya es un DataFrame, no se leerá desde archivo.")
-        return archivo
-
-    print(f"\n📂 Analizando archivo: {archivo}")
-    if sheet_name:
-        print(f"📄 Hoja seleccionada: {sheet_name}")
-
-    # Leer las primeras filas sin encabezado (más de 8 por seguridad)
-    df_preview = pd.read_excel(archivo, sheet_name=sheet_name, header=None, nrows=15)
-    print(f"🔍 Se detectaron {len(df_preview)} filas de vista previa.")
-
-    # Palabras clave típicas en encabezados de PEI
-    claves = ["codigo", "denominacion", "indicador", "descripcion"]
-
-    fila_encabezado = None
-    for i, fila in df_preview.iterrows():
-        texto_fila = " ".join(str(x).lower() for x in fila.tolist())
-        num_textos = sum(bool(str(x).strip()) for x in fila.tolist())
-
-        if num_textos >= 2 and any(clave in texto_fila for clave in claves):
-            fila_encabezado = i
-            print(f"✅ Fila {i} detectada como encabezado.")
-            print("🧾 Contenido de la fila detectada:")
-            print(fila.tolist())
-            break
-
-    # Si no encuentra encabezado, usar fila 0 por defecto
-    if fila_encabezado is None:
-        fila_encabezado = 0
-        print("⚠️ No se detectó fila de encabezado; se usará la primera fila (0).")
-
-    # Leer de nuevo el archivo usando esa fila como encabezado
-    df = pd.read_excel(archivo, sheet_name=sheet_name, header=fila_encabezado)
-    print(f"📑 Se cargó el DataFrame usando la fila {fila_encabezado} como encabezado.")
-
-    # Limpiar encabezados
-    df.columns = (
-        df.columns.astype(str)
-        .str.strip()
-        .str.lower()
-        .str.normalize("NFKD")
-        .str.encode("ascii", errors="ignore")
-        .str.decode("utf-8")
-        .str.replace(r"[^a-z0-9 ]", "", regex=True)
-    )
-
-    print("📋 Encabezados normalizados detectados:", df.columns.tolist())
-
-    # Eliminar filas completamente vacías
-    df = df.dropna(how="all")
-
-    return df
-
-
-
-def comparar_aei(ruta_estandar, df_aei, usar_streamlit=False):
-    """
-    Compara las AEI del PEI con la tabla estándar.
-    Si usar_streamlit=True, usa st.error() en lugar de raise KeyError.
-    """
-    if usar_streamlit:
-        import streamlit as st
-
-    print("🔹 Cargando modelo de embeddings...")
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+       
+    HOJA_ESTANDAR = "AEI"
+    COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
+    COLUMNA_ESTANDAR_CODIGO = "Código"
+    COLUMNA_COMPARAR_TEXTO = [
+        "AEI",
+        "ACCIONES ESTRATÉGICAS INSTITUCIONALES",
+        "Denominación de OEI / AEI / AO",
+        "Denominación del OEI/AEI",
+        "Denominación de OEI/AEI",
+        "Enunciado",
+        "Descripción"        
+    ]    
+    COLUMNA_COMPARAR_CODIGO = [
+        "Código",
+        "CODIGO",
+        "CÓDIGO",        
+        "Código AEI",
+        "Cod AEI"
+    ]
+    UMBRAL_SIMILITUD = 0.75
 
-    # === Leer ambos archivos ===
-    df_estandar = leer_excel_con_encabezado_dinamico(ruta_estandar, sheet_name=HOJA_ESTANDAR)
-    df_comparar = leer_excel_con_encabezado_dinamico(df_aei)
+    # === CARGA DE ARCHIVOS ===
+    df_estandar = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR)
+    df_comparar = df_aei.copy()
 
-    # === Normalizar encabezados ===
-    def limpiar_encabezados(df):
-        df.columns = (
-            df.columns.astype(str)
-            .str.strip()
-            .str.lower()
-            .str.normalize("NFKD")
-            .str.encode("ascii", errors="ignore")
-            .str.decode("utf-8")
-            .str.replace(r"[^a-z0-9 ]", "", regex=True)
-        )
-        return df
+    # === DETECCIÓN DE COLUMNAS ===
+    def detectar_columna(df, opciones, tipo):
+        for col in df.columns:
+            if col.strip() in opciones:
+                return col
+        raise ValueError(f"No se encontró columna de {tipo} en las opciones: {opciones}")
 
-    df_estandar = limpiar_encabezados(df_estandar)
-    df_comparar = limpiar_encabezados(df_comparar)
+    col_texto_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_TEXTO, "texto a comparar")
+    col_codigo_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_CODIGO, "código a comparar")
 
-    print("\n📋 Columnas estándar:", df_estandar.columns.tolist())
-    print("📋 Columnas comparar:", df_comparar.columns.tolist())
+    # === LIMPIEZA DE TEXTO ===
+    df_estandar[COLUMNA_ESTANDAR_TEXTO] = df_estandar[COLUMNA_ESTANDAR_TEXTO].astype(str).str.strip()
+    df_comparar[col_texto_comparar] = df_comparar[col_texto_comparar].astype(str).str.strip()
 
-    # === Buscar columnas más parecidas ===
-    def buscar_columna_similar(nombre_columna_objetivo, columnas_disponibles):
-        columnas_disponibles = [c.strip().lower() for c in columnas_disponibles]
-        nombre_columna_objetivo = nombre_columna_objetivo.strip().lower()
-        coincidencias = difflib.get_close_matches(nombre_columna_objetivo, columnas_disponibles, n=1, cutoff=0.4)
-        return coincidencias[0] if coincidencias else None
-
-    col_texto_estandar = buscar_columna_similar(COLUMNA_ESTANDAR_TEXTO, df_estandar.columns)
-    col_codigo_estandar = buscar_columna_similar(COLUMNA_ESTANDAR_CODIGO, df_estandar.columns)
-    col_texto_comparar = buscar_columna_similar(COLUMNA_COMPARAR_TEXTO, df_comparar.columns)
-    col_codigo_comparar = buscar_columna_similar(COLUMNA_COMPARAR_CODIGO, df_comparar.columns)
-
-    print(f"\n🔎 Texto estándar: {col_texto_estandar}")
-    print(f"🔎 Código estándar: {col_codigo_estandar}")
-    print(f"🔎 Texto comparar: {col_texto_comparar}")
-    print(f"🔎 Código comparar: {col_codigo_comparar}")
-
-    # === Validar columnas ===
-    if not all([col_texto_estandar, col_codigo_estandar, col_texto_comparar, col_codigo_comparar]):
-        mensaje_error = (
-            "❌ No se encontraron las columnas necesarias.\n"
-            f"🧠 Columnas estándar: {df_estandar.columns.tolist()}\n"
-            f"🧠 Columnas comparar: {df_comparar.columns.tolist()}\n"
-            "Verifica que los encabezados contengan palabras similares a las configuradas."
-        )
-        if usar_streamlit:
-            st.error(mensaje_error)
-            return None
-        else:
-            raise KeyError(mensaje_error)
-
-    # === Limpieza ===
-    df_estandar[col_texto_estandar] = df_estandar[col_texto_estandar].astype(str).str.strip().str.lower()
-    df_comparar[col_texto_comparar] = df_comparar[col_texto_comparar].astype(str).str.strip().str.lower()
-
-    # === Embeddings ===
-    print("\n🔹 Generando embeddings...")
-    embeddings_estandar = modelo.encode(df_estandar[col_texto_estandar].tolist(), convert_to_tensor=True)
+    # === EMBEDDINGS ===
+    embeddings_estandar = modelo.encode(df_estandar[COLUMNA_ESTANDAR_TEXTO].tolist(), convert_to_tensor=True)
     embeddings_comparar = modelo.encode(df_comparar[col_texto_comparar].tolist(), convert_to_tensor=True)
 
+    # === CÁLCULO DE SIMILITUD ===
+    similitudes = util.cos_sim(embeddings_comparar, embeddings_estandar)
+    
     resultados = []
     for i, texto in enumerate(df_comparar[col_texto_comparar]):
         emb_texto = embeddings_comparar[i]
@@ -157,11 +62,11 @@ def comparar_aei(ruta_estandar, df_aei, usar_streamlit=False):
         indice_max = similitudes.argmax().item()
         valor_max = similitudes[indice_max].item()
 
-        texto_estandar = df_estandar.loc[indice_max, col_texto_estandar]
-        codigo_estandar = df_estandar.loc[indice_max, col_codigo_estandar]
+        texto_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_TEXTO]
+        codigo_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_CODIGO]
         codigo_comparar = df_comparar.loc[i, col_codigo_comparar]
 
-        if texto == texto_estandar:
+        if texto.lower() == texto_estandar.lower():
             categoria = "Coincidencia exacta"
         elif valor_max >= UMBRAL_SIMILITUD:
             categoria = "Coincidencia parcial"
@@ -177,6 +82,19 @@ def comparar_aei(ruta_estandar, df_aei, usar_streamlit=False):
             "Resultado": categoria
         })
 
-    df_resultados = pd.DataFrame(resultados)
-    print("\n✅ Comparación AEI completada correctamente.")
-    return df_resultados
+    #return pd.DataFrame(resultados)
+    df_resultado = pd.DataFrame(resultados)
+
+    # ---- 🔵 APLICAR COLORES ----
+    def color_fila(row):
+        if row["Resultado"] == "Coincidencia exacta":
+            color = "background-color: lightgreen"
+        elif row["Resultado"] == "Coincidencia parcial":
+            color = "background-color: khaki"
+        else:
+            color = "background-color: lightcoral"
+        return [color] * len(row)
+
+    df_styled = df_resultado.style.apply(color_fila, axis=1)
+
+    return df_styled
