@@ -1,6 +1,7 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 #import streamlit as st if usar_streamlit else None
+from difflib import get_close_matches
 
 def comparar_aei(ruta_estandar, df_aei):
     """
@@ -35,11 +36,35 @@ def comparar_aei(ruta_estandar, df_aei):
     df_comparar = df_aei.copy()
 
     # === DETECCIÓN DE COLUMNAS ===
+    # VERSIÓN QUE FUNCIONA CON OEI
+    #def detectar_columna(df, opciones, tipo):
+    #    for col in df.columns:
+    #        if col.strip() in opciones:
+    #            return col
+    #    raise ValueError(f"No se encontró columna de {tipo} en las opciones: {opciones}")
+        
     def detectar_columna(df, opciones, tipo):
-        for col in df.columns:
-            if col.strip() in opciones:
-                return col
-        raise ValueError(f"No se encontró columna de {tipo} en las opciones: {opciones}")
+        # Normaliza los nombres de las columnas
+        cols_norm = {col: col.strip().lower().replace("ó", "o").replace("í", "i").replace("á", "a").replace("é", "e").replace("ú", "u") for col in df.columns}
+
+        for col_real, col_norm in cols_norm.items():
+            # Si la columna contiene alguna palabra clave de las opciones
+            for opt in opciones:
+                opt_norm = opt.strip().lower().replace("ó", "o").replace("í", "i").replace("á", "a").replace("é", "e").replace("ú", "u")
+                if opt_norm in col_norm or col_norm in opt_norm:
+                    return col_real
+
+            # Si no hay coincidencia exacta, buscar coincidencia cercana
+            coincidencia = get_close_matches(col_norm, [o.lower() for o in opciones], n=1, cutoff=0.6)
+            if coincidencia:
+                return col_real
+
+        raise KeyError(
+            f"❌ No se encontró la columna de {tipo}.\n"
+            f"🧠 Columnas del archivo: {list(df.columns)}\n"
+            f"🧩 Opciones buscadas: {opciones}"
+        )
+
 
     col_texto_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_TEXTO, "texto a comparar")
     col_codigo_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_CODIGO, "código a comparar")
