@@ -1,34 +1,31 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
+#import streamlit as st if usar_streamlit else None
 
 def comparar_oei(ruta_estandar, df_oei):
     """
     Compara la tabla OEI extraída del PEI con la tabla estándar.
-    Soporta múltiples nombres posibles de columnas.
-    Devuelve un DataFrame con los resultados de similitud.
+    Devuelve un DataFrame con los resultados.
     """
-
-    # === CONFIGURACIÓN ===
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+       
     HOJA_ESTANDAR = "OEI"
-    UMBRAL_SIMILITUD = 0.75
-
-    # Posibles nombres de columnas (texto y código)
-    OPCIONES_TEXTO_COMPARAR = [
-        "Denominación de OEI",
+    COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
+    COLUMNA_ESTANDAR_CODIGO = "Código"
+    COLUMNA_COMPARAR_TEXTO = [
+        "Denominación de OEI"
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
+        "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
         "Denominación de OEI / AEI / AO",
         "Descripción"
-    ]
-    OPCIONES_CODIGO_COMPARAR = [
+    ]    
+    COLUMNA_COMPARAR_CODIGO = [
         "Código",
         "CODIGO",
         "Código OEI",
         "Cod OEI"
     ]
-
-    COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
-    COLUMNA_ESTANDAR_CODIGO = "Código"
+    UMBRAL_SIMILITUD = 0.75
 
     # === CARGA DE ARCHIVOS ===
     df_estandar = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR)
@@ -41,8 +38,8 @@ def comparar_oei(ruta_estandar, df_oei):
                 return col
         raise ValueError(f"No se encontró columna de {tipo} en las opciones: {opciones}")
 
-    col_texto_comparar = detectar_columna(df_comparar, OPCIONES_TEXTO_COMPARAR, "texto a comparar")
-    col_codigo_comparar = detectar_columna(df_comparar, OPCIONES_CODIGO_COMPARAR, "código a comparar")
+    col_texto_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_TEXTO, "texto a comparar")
+    col_codigo_comparar = detectar_columna(df_comparar, COLUMNA_COMPARAR_CODIGO, "código a comparar")
 
     # === LIMPIEZA DE TEXTO ===
     df_estandar[COLUMNA_ESTANDAR_TEXTO] = df_estandar[COLUMNA_ESTANDAR_TEXTO].astype(str).str.strip()
@@ -54,31 +51,47 @@ def comparar_oei(ruta_estandar, df_oei):
 
     # === CÁLCULO DE SIMILITUD ===
     similitudes = util.cos_sim(embeddings_comparar, embeddings_estandar)
-
+    
     resultados = []
-    for i, fila in df_comparar.iterrows():
-        idx_max = similitudes[i].argmax().item()
-        similitud_max = similitudes[i][idx_max].item()
+    for i, texto in enumerate(df_comparar[COLUMNA_COMPARAR_TEXTO]):
+        emb_texto = embeddings_comparar[i]
+        similitudes = util.cos_sim(emb_texto, embeddings_estandar)[0]
+        indice_max = similitudes.argmax().item()
+        valor_max = similitudes[indice_max].item()
 
-        if similitud_max >= 0.95:
-            estado = "Coincidencia Exacta"
-            color = "🟩"
-        elif similitud_max >= UMBRAL_SIMILITUD:
-            estado = "Coincidencia Parcial"
-            color = "🟨"
+        texto_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_TEXTO]
+        codigo_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_CODIGO]
+        codigo_comparar = df_comparar.loc[i, COLUMNA_COMPARAR_CODIGO]
+
+        if texto.lower() == texto_estandar.lower():
+            categoria = "Coincidencia exacta"
+        elif valor_max >= UMBRAL_SIMILITUD:
+            categoria = "Coincidencia parcial"
         else:
-            estado = "No Coincide"
-            color = "🟥"
+            categoria = "No coincide"
 
         resultados.append({
-            "Código (PEI)": fila[col_codigo_comparar],
-            "Denominación (PEI)": fila[col_texto_comparar],
-            "Código (Estandar)": df_estandar.loc[idx_max, COLUMNA_ESTANDAR_CODIGO],
-            "Denominación (Estandar)": df_estandar.loc[idx_max, COLUMNA_ESTANDAR_TEXTO],
-            "Similitud": round(similitud_max, 3),
-            "Resultado": estado,
-            "Color": color
+            "Código comparar": codigo_comparar,
+            "Elemento a comparar": texto,
+            "Código estándar más similar": codigo_estandar,
+            "Elemento estándar más similar": texto_estandar,
+            "Similitud": round(valor_max, 3),
+            "Resultado": categoria
         })
 
+    #return pd.DataFrame(resultados)
     df_resultado = pd.DataFrame(resultados)
-    return df_resultado
+
+    # ---- 🔵 APLICAR COLORES ----
+    def color_fila(row):
+        if row["Resultado"] == "Coincidencia exacta":
+            color = "background-color: lightgreen"
+        elif row["Resultado"] == "Coincidencia parcial":
+            color = "background-color: khaki"
+        else:
+            color = "background-color: lightcoral"
+        return [color] * len(row)
+
+    df_styled = df_resultado.style.apply(color_fila, axis=1)
+
+    return df_styled
