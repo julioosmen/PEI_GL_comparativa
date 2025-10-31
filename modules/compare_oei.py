@@ -13,7 +13,7 @@ def comparar_oei(ruta_estandar, df_oei):
     COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
     COLUMNA_ESTANDAR_CODIGO = "Código"
     COLUMNA_COMPARAR_TEXTO = [
-        "Denominación de OEI",
+        "Denominación de OEI"
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
         "Denominación de OEI / AEI / AO",
@@ -53,7 +53,7 @@ def comparar_oei(ruta_estandar, df_oei):
     similitudes = util.cos_sim(embeddings_comparar, embeddings_estandar)
     
     resultados = []
-    for i, texto in enumerate(df_comparar[COLUMNA_COMPARAR_TEXTO]):
+    for i, texto in enumerate(df_comparar[col_texto_comparar]):
         emb_texto = embeddings_comparar[i]
         similitudes = util.cos_sim(emb_texto, embeddings_estandar)[0]
         indice_max = similitudes.argmax().item()
@@ -61,7 +61,7 @@ def comparar_oei(ruta_estandar, df_oei):
 
         texto_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_TEXTO]
         codigo_estandar = df_estandar.loc[indice_max, COLUMNA_ESTANDAR_CODIGO]
-        codigo_comparar = df_comparar.loc[i, COLUMNA_COMPARAR_CODIGO]
+        codigo_comparar = df_comparar.loc[i, col_codigo_comparar]
 
         if texto.lower() == texto_estandar.lower():
             categoria = "Coincidencia exacta"
