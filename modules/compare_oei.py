@@ -23,6 +23,7 @@ def comparar_oei(ruta_estandar, df_oei):
     COLUMNA_COMPARAR_CODIGO = [
         "Código",
         "CODIGO",
+        "CÓDIGO",        
         "Código OEI",
         "Cod OEI"
     ]
