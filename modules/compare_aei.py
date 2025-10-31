@@ -18,6 +18,7 @@ def comparar_aei(ruta_estandar, df_aei):
         "ACCIONES ESTRATÉGICAS INSTITUCIONALES",
         "Denominación de OEI / AEI / AO",
         "Denominación del OEI/AEI",
+        "Denominación de OEI / AEI"
         "Denominación de OEI/AEI",
         "Enunciado",
         "Descripción"        
