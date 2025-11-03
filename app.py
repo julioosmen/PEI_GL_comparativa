@@ -77,9 +77,11 @@ if archivo_pei:
         with st.spinner("Realizando comparación con estándar..."):
             if tipo_comparacion == "OEI" and "OEI" in tablas:
                 df_result_oei = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
+                st.session_state["df_result_oei"] = df_result_oei  # ✅ Guardar resultado OEI
                 df_result = df_result_oei
             elif tipo_comparacion == "AEI" and "AEI" in tablas:
                 df_result_aei = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
+                st.session_state["df_result_aei"] = df_result_aei  # ✅ Guardar resultado AEI
                 df_result = df_result_aei
             else:
                 st.error(f"No se encontró la tabla {tipo_comparacion} en el documento subido.")
@@ -100,27 +102,36 @@ if archivo_pei:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-        # Si ambos resultados están disponibles, permitir descarga consolidada
-        if df_result_oei is not None or df_result_aei is not None:
+        # === DESCARGA CONSOLIDADA ===
+        if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
             st.markdown("---")
             st.subheader("📘 Descarga consolidada (Resumen + OEI + AEI)")
+        
+            # Obtener resultados guardados
+            df_result_oei = st.session_state.get("df_result_oei")
+            df_result_aei = st.session_state.get("df_result_aei")
+        
+            if df_result_oei is not None or df_result_aei is not None:
+                resumen = generar_resumen(df_result_oei, df_result_aei)
+        
+                from io import BytesIO
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    resumen.to_excel(writer, index=False, sheet_name="Resumen")
+                    if df_result_oei is not None:
+                        df_result_oei.to_excel(writer, index=False, sheet_name="OEI")
+                    if df_result_aei is not None:
+                        df_result_aei.to_excel(writer, index=False, sheet_name="AEI")
+                output.seek(0)
+        
+                st.download_button(
+                    label="⬇️ Descargar consolidado (Resumen + OEI + AEI)",
+                    data=output,
+                    file_name="comparacion_consolidada.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.info("Debes procesar al menos una comparación para habilitar la descarga consolidada.")
 
-            resumen = generar_resumen(df_result_oei, df_result_aei)
-
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                resumen.to_excel(writer, index=False, sheet_name="Resumen")
-                if df_result_oei is not None:
-                    df_result_oei.to_excel(writer, index=False, sheet_name="OEI")
-                if df_result_aei is not None:
-                    df_result_aei.to_excel(writer, index=False, sheet_name="AEI")
-            output.seek(0)
-
-            st.download_button(
-                label="⬇️ Descargar archivo consolidado",
-                data=output,
-                file_name="comparacion_consolidada.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
 else:
     st.info("Sube un archivo Word o PDF para comenzar.")
