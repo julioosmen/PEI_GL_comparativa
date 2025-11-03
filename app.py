@@ -105,7 +105,11 @@ if archivo_pei:
             st.markdown("---")
             st.subheader("📘 Descarga consolidada (Resumen + OEI + AEI)")
 
-            resumen = generar_resumen(df_result_oei, df_result_aei)
+            # Convertir Styler a DataFrame real antes del resumen
+            df_oei_base = df_result_oei.data if hasattr(df_result_oei, "data") else df_result_oei
+            df_aei_base = df_result_aei.data if hasattr(df_result_aei, "data") else df_result_aei
+            
+            resumen = generar_resumen(df_oei_base, df_aei_base)
 
             output = BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
