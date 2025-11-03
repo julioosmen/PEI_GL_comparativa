@@ -144,7 +144,7 @@ def comparar_aei(ruta_estandar, df_aei, umbral=0.75):
 
     # === 🔍 FILTRO PARA EXCLUIR FILAS CON "OEI", "OIE" O SIMILARES ===
     df_resultado = df_resultado[
-        ~df_resultado["Código comparar"]
+        ~df_resultado["Código del GL"]
         .astype(str)
         .str.contains(r"O.?E.?I|O.?I.?E", case=False, na=False)
     ].reset_index(drop=True)
