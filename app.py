@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from io import BytesIO
+from modules.extract_tables import extraer_tablas
 from modules.compare_oei import comparar_oei
 from modules.compare_aei import comparar_aei
 
