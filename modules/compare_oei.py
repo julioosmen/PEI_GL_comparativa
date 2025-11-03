@@ -18,6 +18,7 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
     COL_EST_CODIGO = "Código"
 
     COL_OPC_TEXTO = [
+        "Denominación",
         "Denominación de OEI",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONALES",
         "OBJETIVOS ESTRATÉGICOS INSTITUCIONAL",
