@@ -31,9 +31,9 @@ def generar_resumen(df_oei=None, df_aei=None):
             "Coincidencia exacta": exactas,
             "Coincidencia parcial": parciales,
             "No coincide": no_coincide,
-            "% Coincidencia exacta": round(exactas / total * 100, 1) if total else 0,
-            "% Coincidencia parcial": round(parciales / total * 100, 1) if total else 0,
-            "% No coincide": round(no_coincide / total * 100, 1) if total else 0
+            "% Coincidencia exacta": round(exactas / total * 100, 1),
+            "% Coincidencia parcial": round(parciales / total * 100, 1),
+            "% No coincide": round(no_coincide / total * 100, 1)
         })
 
     resumen_oei = procesar(df_oei, "OEI") if df_oei is not None else None
@@ -47,24 +47,16 @@ def generar_resumen(df_oei=None, df_aei=None):
 st.set_page_config(page_title="Comparador de elementos PEI de los Gobiernos Locales", layout="wide")
 st.title("📊 Analizador PEI – Extracción y Comparación de OEI/AEI")
 
-# Ruta fija del archivo estándar (ya presente en el proyecto)
 RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
 
-# === SECCIÓN DE SUBIDA DE ARCHIVO ===
+# === SECCIÓN DE SUBIDA ===
 st.sidebar.header("📂 Subir archivo PEI")
-archivo_pei = st.sidebar.file_uploader(
-    "Selecciona el archivo del PEI (Word o PDF)", 
-    type=["pdf", "docx"]
-)
-
+archivo_pei = st.sidebar.file_uploader("Selecciona el archivo del PEI (Word o PDF)", type=["pdf", "docx"])
 tipo_comparacion = st.sidebar.radio("Selecciona tipo de comparación", ["OEI", "AEI"])
-
-# Variables para guardar los resultados
-df_result_oei = None
-df_result_aei = None
 
 if archivo_pei:
     st.write(f"📁 Archivo subido: **{archivo_pei.name}**")
+
     if st.button("🚀 Iniciar procesamiento"):
         with st.spinner("Extrayendo tablas relevantes..."):
             tablas = extraer_tablas(archivo_pei)
@@ -73,25 +65,21 @@ if archivo_pei:
             st.error("⚠️ No se encontraron tablas relevantes (OEI o AEI).")
             st.stop()
 
-        # Ejecutar comparación según tipo seleccionado
         with st.spinner("Realizando comparación con estándar..."):
             if tipo_comparacion == "OEI" and "OEI" in tablas:
-                df_result_oei = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
-                st.session_state["df_result_oei"] = df_result_oei  # ✅ Guardar resultado OEI
-                df_result = df_result_oei
+                df_result = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
+                st.session_state["df_result_oei"] = df_result
             elif tipo_comparacion == "AEI" and "AEI" in tablas:
-                df_result_aei = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
-                st.session_state["df_result_aei"] = df_result_aei  # ✅ Guardar resultado AEI
-                df_result = df_result_aei
+                df_result = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
+                st.session_state["df_result_aei"] = df_result
             else:
                 st.error(f"No se encontró la tabla {tipo_comparacion} en el documento subido.")
                 st.stop()
 
-        # Mostrar resultados
         st.success(f"✅ Comparación completada para {tipo_comparacion}")
         st.dataframe(df_result, use_container_width=True)
 
-        # Descargar resultado individual
+        # Descarga individual
         nombre_salida = f"resultado_comparacion_{tipo_comparacion}.xlsx"
         df_result.to_excel(nombre_salida, index=False)
         with open(nombre_salida, "rb") as f:
@@ -102,36 +90,40 @@ if archivo_pei:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-        # === DESCARGA CONSOLIDADA ===
-        if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
-            st.markdown("---")
-            st.subheader("📘 Descarga consolidada (Resumen + OEI + AEI)")
-        
-            # Obtener resultados guardados
-            df_result_oei = st.session_state.get("df_result_oei")
-            df_result_aei = st.session_state.get("df_result_aei")
-        
-            if df_result_oei is not None or df_result_aei is not None:
-                resumen = generar_resumen(df_result_oei, df_result_aei)
-        
-                from io import BytesIO
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                    resumen.to_excel(writer, index=False, sheet_name="Resumen")
-                    if df_result_oei is not None:
-                        df_result_oei.to_excel(writer, index=False, sheet_name="OEI")
-                    if df_result_aei is not None:
-                        df_result_aei.to_excel(writer, index=False, sheet_name="AEI")
-                output.seek(0)
-        
-                st.download_button(
-                    label="⬇️ Descargar consolidado (Resumen + OEI + AEI)",
-                    data=output,
-                    file_name="comparacion_consolidada.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-            else:
-                st.info("Debes procesar al menos una comparación para habilitar la descarga consolidada.")
 
-else:
-    st.info("Sube un archivo Word o PDF para comenzar.")
+# === DESCARGA CONSOLIDADA (Fuera del botón) ===
+if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
+    st.markdown("---")
+    st.subheader("📘 Descarga consolidada (Resumen + OEI + AEI)")
+
+    df_result_oei = st.session_state.get("df_result_oei")
+    df_result_aei = st.session_state.get("df_result_aei")
+
+    if df_result_oei is not None or df_result_aei is not None:
+        resumen = generar_resumen(df_result_oei, df_result_aei)
+
+        # === Contador visual ===
+        st.markdown("### 📊 Resumen de resultados")
+        for _, fila in resumen.iterrows():
+            st.metric(
+                label=f"{fila['Tipo']} - Coincidencia exacta",
+                value=f"{fila['% Coincidencia exacta']}%",
+                delta=f"{fila['Coincidencia exacta']} de {fila['Total de elementos']}"
+            )
+
+        # === Excel consolidado ===
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            resumen.to_excel(writer, index=False, sheet_name="Resumen")
+            if df_result_oei is not None:
+                df_result_oei.to_excel(writer, index=False, sheet_name="OEI")
+            if df_result_aei is not None:
+                df_result_aei.to_excel(writer, index=False, sheet_name="AEI")
+        output.seek(0)
+
+        st.download_button(
+            label="⬇️ Descargar consolidado (Resumen + OEI + AEI)",
+            data=output,
+            file_name="comparacion_consolidada.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
