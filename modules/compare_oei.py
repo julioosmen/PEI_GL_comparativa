@@ -111,4 +111,4 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
 
     df_styled = df_result.style.apply(color_fila, axis=1)
 
-    return df_result, df_styled
+    return df_styled
