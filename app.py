@@ -3,7 +3,6 @@ import pandas as pd
 from io import BytesIO
 from modules.compare_oei import comparar_oei
 from modules.compare_aei import comparar_aei
-from modules.utils import leer_documento
 
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Comparador PEI GL", layout="wide")
