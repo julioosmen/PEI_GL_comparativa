@@ -82,6 +82,12 @@ def comparar_aei(ruta_estandar, df_aei, umbral=0.75):
     df_estandar[COLUMNA_ESTANDAR_TEXTO] = df_estandar[COLUMNA_ESTANDAR_TEXTO].astype(str).apply(limpiar_texto)
     df_comparar[col_texto_comparar] = df_comparar[col_texto_comparar].astype(str).apply(limpiar_texto)
 
+    # 🧹 Eliminar filas sin código o sin texto (vacías o nulas)
+    df_comparar = df_comparar[
+        df_comparar[col_texto_comparar].str.strip().ne("") &
+        df_comparar[col_codigo_comparar].astype(str).str.strip().ne("")
+    ].reset_index(drop=True)
+       
     # === EMBEDDINGS ===
     embeddings_estandar = modelo.encode(df_estandar[COLUMNA_ESTANDAR_TEXTO].tolist(), convert_to_tensor=True)
     embeddings_comparar = modelo.encode(df_comparar[col_texto_comparar].tolist(), convert_to_tensor=True)
