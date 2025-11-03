@@ -112,8 +112,8 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
         diferencias = obtener_diferencias(texto, texto_estandar)
 
         resultados.append({
-            "Código comparar": codigo_comparar,
-            "Elemento a comparar": texto,
+            "Código del GL": codigo_comparar,
+            "Elemento del GL": texto,
             "Código estándar más similar": codigo_estandar,
             "Elemento estándar más similar": texto_estandar,
             #"Similitud": round(val_max, 3),
