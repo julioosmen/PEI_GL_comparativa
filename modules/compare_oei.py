@@ -1,12 +1,14 @@
 import pandas as pd
 import re
 import unicodedata
+import difflib
 from sentence_transformers import SentenceTransformer, util
 
 def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
     """
     Compara la tabla OEI extraída del PEI con la tabla estándar,
-    ignorando diferencias en espacios, comas y tildes.
+    ignorando diferencias en tildes, espacios y puntuación.
+    Además, muestra las palabras que difieren entre ambas frases.
     Devuelve (df_resultado, df_estilizado).
     """
 
@@ -32,15 +34,10 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
         if pd.isna(texto):
             return ""
         texto = str(texto).lower().strip()
-        # Eliminar tildes
         texto = unicodedata.normalize("NFD", texto)
         texto = texto.encode("ascii", "ignore").decode("utf-8")
-        # Quitar signos de puntuación comunes
         texto = re.sub(r"[.,;:!?¿¡()\"'”“]", "", texto)
-        # Quitar espacios múltiples
-        texto = re.sub(r"\s+", " ", texto)
-        # Quitar espacios al inicio/fin
-        texto = texto.strip()
+        texto = re.sub(r"\s+", " ", texto).strip()
         return texto
 
     def detectar_columna(df, opciones, tipo):
@@ -49,6 +46,26 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
                 if col.strip().lower() == opc.strip().lower():
                     return col
         raise ValueError(f"No se encontró columna de {tipo} en las opciones: {opciones}")
+
+    def obtener_diferencias(texto1, texto2):
+        """
+        Devuelve las palabras que difieren entre texto1 y texto2.
+        """
+        palabras1 = normalizar_texto(texto1).split()
+        palabras2 = normalizar_texto(texto2).split()
+        diffs = []
+        sm = difflib.SequenceMatcher(None, palabras1, palabras2)
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            if tag in ["replace", "delete", "insert"]:
+                parte1 = " ".join(palabras1[i1:i2])
+                parte2 = " ".join(palabras2[j1:j2])
+                if parte1 and parte2:
+                    diffs.append(f"{parte1} → {parte2}")
+                elif parte1:
+                    diffs.append(f"– {parte1}")
+                elif parte2:
+                    diffs.append(f"+ {parte2}")
+        return "; ".join(diffs) if diffs else "—"
 
     # === CARGA ===
     df_estandar = pd.read_excel(ruta_estandar, sheet_name=HOJA_ESTANDAR)
@@ -82,6 +99,7 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
         codigo_estandar = df_estandar.loc[idx_max, COL_EST_CODIGO]
         codigo_comparar = df_comparar.loc[i, col_cod_cmp]
 
+        # Categoría
         if normalizar_texto(texto) == normalizar_texto(texto_estandar):
             categoria = "Coincidencia exacta"
         elif val_max >= umbral:
@@ -89,13 +107,17 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
         else:
             categoria = "No coincide"
 
+        # Diferencias literales
+        diferencias = obtener_diferencias(texto, texto_estandar)
+
         resultados.append({
             "Código comparar": codigo_comparar,
             "Elemento a comparar": texto,
             "Código estándar más similar": codigo_estandar,
             "Elemento estándar más similar": texto_estandar,
             "Similitud": round(val_max, 3),
-            "Resultado": categoria
+            "Resultado": categoria,
+            "Diferencias": diferencias
         })
 
     df_result = pd.DataFrame(resultados)
