@@ -8,6 +8,10 @@ from modules.compare_aei import comparar_aei
 # === FUNCIÓN PARA GENERAR RESUMEN ===
 def generar_resumen(df_oei=None, df_aei=None):
     def procesar(df, tipo):
+        # 👇 Si viene un objeto Styler, obtener el DataFrame original
+        if isinstance(df, pd.io.formats.style.Styler):
+            df = df.data
+
         if df is None or df.empty:
             return pd.Series({
                 "Tipo": tipo,
