@@ -115,7 +115,7 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
             "Elemento a comparar": texto,
             "Código estándar más similar": codigo_estandar,
             "Elemento estándar más similar": texto_estandar,
-            "Similitud": round(val_max, 3),
+            #"Similitud": round(val_max, 3),
             "Resultado": categoria,
             "Diferencias": diferencias
         })
