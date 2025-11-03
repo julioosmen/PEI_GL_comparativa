@@ -6,6 +6,7 @@ def comparar_aei(ruta_estandar, df_aei):
     """
     Compara la tabla AEI extraída del PEI con la tabla estándar.
     Devuelve un DataFrame con los resultados, incluyendo diferencias de texto.
+    Excluye filas cuyo código comience con 'OEI'.
     """
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
        
@@ -109,14 +110,18 @@ def comparar_aei(ruta_estandar, df_aei):
             "Elemento a comparar": texto,
             "Código estándar más similar": codigo_estandar,
             "Elemento estándar más similar": texto_estandar,
-            #"Similitud": round(valor_max, 3),
+            "Similitud": round(valor_max, 3),
             "Resultado": categoria,
             "Diferencias": ", ".join(diferencias) if diferencias else ""
         })
 
-    # === APLICAR COLORES ===
+    # === CREAR DATAFRAME FINAL ===
     df_resultado = pd.DataFrame(resultados)
 
+    # 🔴 FILTRAR FILAS QUE EMPIECEN CON "OEI"
+    df_resultado = df_resultado[~df_resultado["Código comparar"].astype(str).str.startswith("OEI")].reset_index(drop=True)
+
+    # === APLICAR COLORES ===
     def color_fila(row):
         if row["Resultado"] == "Coincidencia exacta":
             color = "background-color: lightgreen"
