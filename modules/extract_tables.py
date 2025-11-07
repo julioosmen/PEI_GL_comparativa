@@ -19,7 +19,7 @@ def detectar_fila_encabezado(dataframe):
     Detecta la fila que contiene los encabezados correctos.
     Usa heurísticas simples: más celdas no vacías, presencia de palabras clave comunes.
     """
-    palabras_clave = ["denominación", "acción", "objetivo", "indicador", "meta"]
+    palabras_clave = ["código", "enunciado", "denominación", "objetivo", "indicador", "meta"]
     mejor_fila = 0
     mejor_puntaje = 0
 
