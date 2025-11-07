@@ -17,13 +17,13 @@ def comparar_aei(ruta_estandar, df_aei, umbral=0.75):
     COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
     COLUMNA_ESTANDAR_CODIGO = "Código"
     COLUMNA_COMPARAR_TEXTO = [
+        "Enunciado",
         "AEI",
         "ACCIONES ESTRATÉGICAS INSTITUCIONALES",
         "Denominación de OEI / AEI / AO",
         "Denominación del OEI/AEI",
         "Denominación de OEI / AEI",
         "Denominación de OEI/AEI",
-        "Enunciado",
         "Descripción"        
     ]    
     COLUMNA_COMPARAR_CODIGO = [
