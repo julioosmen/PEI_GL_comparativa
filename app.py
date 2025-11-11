@@ -61,18 +61,18 @@ if uploaded_file:
     ):
         with tab:
             df_result = st.session_state[key]
+        
+            # Obtener el DataFrame base (aunque sea Styler)
             if isinstance(df_result, pd.io.formats.style.Styler):
-                st.dataframe(df_result, use_container_width=True)
+                df_to_show = df_result.data.copy()
             else:
-                #st.dataframe(df_result, use_container_width=True)
-                # Agregar enumeración iniciando en 1
-                if isinstance(df_result, pd.io.formats.style.Styler):
-                    df_to_show = df_result.data.copy()
-                else:
-                    df_to_show = df_result.copy()
-                
-                df_to_show.insert(0, "N°", range(1, len(df_to_show) + 1))
-                st.dataframe(df_to_show, use_container_width=True)
+                df_to_show = df_result.copy()
+        
+            # 🔹 Ajustar índice para que empiece desde 1
+            df_to_show.index = range(1, len(df_to_show) + 1)
+        
+            # Mostrar con el índice ajustado
+            st.dataframe(df_to_show, use_container_width=True)
     
     # ===============================
     # 4️⃣ Resumen estadístico (sin promedio general)
