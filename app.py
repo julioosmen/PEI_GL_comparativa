@@ -118,40 +118,40 @@ if uploaded_file:
     st.dataframe(df_resumen, use_container_width=True)
     st.session_state["df_resumen"] = df_resumen
 
-# ===============================
-# 5️⃣ Exportar a Excel consolidado con colores
-# ===============================
-st.header("📤 Exportar Resultados")
-
-def exportar_excel():
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        # --- Hoja de resumen (sin estilos) ---
-        df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
-
-        # --- Hojas con formato de color ---
-        for nombre, key in comparaciones.items():
-            df = st.session_state[key]
-            sheet_name = nombre.replace(" ", "_")
-
-            if isinstance(df, pd.io.formats.style.Styler):
-                # Exportar manteniendo los colores definidos en el Styler
-                df.to_excel(writer, sheet_name=sheet_name, index=False, engine="openpyxl")
-            else:
-                # Si no tiene estilos, exportar normalmente
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-    output.seek(0)
-    return output
-
-excel_bytes = exportar_excel()
-
-st.download_button(
-    label="⬇️ Descargar Excel Consolidado",
-    data=excel_bytes,
-    file_name="Comparativo_PEIGL_Completo.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+    # ===============================
+    # 5️⃣ Exportar a Excel consolidado con colores
+    # ===============================
+    st.header("📤 Exportar Resultados")
+    
+    def exportar_excel():
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            # --- Hoja de resumen (sin estilos) ---
+            df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+    
+            # --- Hojas con formato de color ---
+            for nombre, key in comparaciones.items():
+                df = st.session_state[key]
+                sheet_name = nombre.replace(" ", "_")
+    
+                if isinstance(df, pd.io.formats.style.Styler):
+                    # Exportar manteniendo los colores definidos en el Styler
+                    df.to_excel(writer, sheet_name=sheet_name, index=False, engine="openpyxl")
+                else:
+                    # Si no tiene estilos, exportar normalmente
+                    df.to_excel(writer, sheet_name=sheet_name, index=False)
+    
+        output.seek(0)
+        return output
+    
+    excel_bytes = exportar_excel()
+    
+    st.download_button(
+        label="⬇️ Descargar Excel Consolidado",
+        data=excel_bytes,
+        file_name="Comparativo_PEIGL_Completo.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 else:
     st.info("📁 Sube un archivo Word o PDF para iniciar la comparación.")
