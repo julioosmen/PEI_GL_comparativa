@@ -63,12 +63,14 @@ if uploaded_file:
             df_result = st.session_state[key]
         
             if isinstance(df_result, pd.io.formats.style.Styler):
-                # 🔹 Ajustar índice del DataFrame que contiene el Styler
-                df_styled = df_result
-                df_styled.data.index = range(1, len(df_styled.data) + 1)
-                st.dataframe(df_styled, use_container_width=True)
+                # 🔹 Crear una copia temporal solo para mostrar el índice desde 1
+                df_show = df_result.data.copy()
+                df_show.index = range(1, len(df_show) + 1)
+                st.dataframe(df_show.style
+                             .apply(lambda _: df_result.export().ctx_apply, axis=None)
+                             .set_properties(**{'border-color': 'inherit'}),
+                             use_container_width=True)
             else:
-                # 🔹 Si no tiene estilo, igual ajustamos el índice
                 df_result.index = range(1, len(df_result) + 1)
                 st.dataframe(df_result, use_container_width=True)
     
