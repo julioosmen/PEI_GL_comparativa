@@ -1,59 +1,141 @@
 import streamlit as st
 import pandas as pd
 from modules.extract_tables import extraer_tablas
-from modules.compare_oei import comparar_oei
-from modules.compare_aei import comparar_aei
+from modules.compare_oei import comparar_oei, comparar_oei_ind
+from modules.compare_aei import comparar_aei, comparar_aei_ind
+from io import BytesIO
 
-# === CONFIGURACIÓN INICIAL ===
-st.set_page_config(page_title="Comparador de elementos PEI de los Gobiernos Locales", layout="wide")
-st.title("📊 Analizador PEI – Extracción y Comparación de OEI/AEI")
-
-# Ruta fija del archivo estándar (ya presente en el proyecto)
 RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
 
-# === SECCIÓN DE SUBIDA DE ARCHIVO ===
-st.sidebar.header("📂 Subir archivo PEI")
-archivo_pei = st.sidebar.file_uploader(
-    "Selecciona el archivo del PEI (Word o PDF)", 
-    type=["pdf", "docx"]
-)
+st.set_page_config(page_title="Comparador PEI-GL", layout="wide")
+st.title("📊 Comparador de elementos PEI de los Gobiernos Locales")
 
-tipo_comparacion = st.sidebar.radio("Selecciona tipo de comparación", ["OEI", "AEI"])
+# ===============================
+# 1️⃣ Cargar archivo del usuario
+# ===============================
+uploaded_file = st.file_uploader("Sube tu archivo PEI (Word o PDF)", type=["docx", "pdf"])
 
-if archivo_pei:
-    st.write(f"📁 Archivo subido: **{archivo_pei.name}**")
-    if st.button("🚀 Iniciar procesamiento"):
-        with st.spinner("Extrayendo tablas relevantes..."):
-            tablas = extraer_tablas(archivo_pei)
+if uploaded_file:
+    tablas = extraer_tablas(uploaded_file)
+    st.success("✅ Tablas extraídas correctamente")
 
-        if not tablas:
-            st.error("⚠️ No se encontraron tablas relevantes (OEI o AEI).")
-            st.stop()
+    # ===============================
+    # 2️⃣ Ejecutar todas las comparaciones
+    # ===============================
+    with st.spinner("Comparando tablas..."):
+        df_oei_den = comparar_oei(RUTA_ESTANDAR, tablas.get("OEI"))
+        df_oei_ind = comparar_oei_ind(RUTA_ESTANDAR, tablas.get("OEI"))
+        df_aei_den = comparar_aei(RUTA_ESTANDAR, tablas.get("AEI"))
+        df_aei_ind = comparar_aei_ind(RUTA_ESTANDAR, tablas.get("AEI"))
 
-        # Ejecutar comparación según tipo seleccionado
-        with st.spinner("Realizando comparación con estándar..."):
-            if tipo_comparacion == "OEI" and "OEI" in tablas:
-                df_result = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
-            elif tipo_comparacion == "AEI" and "AEI" in tablas:
-                df_result = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
+    # Guardar en session_state
+    st.session_state.update({
+        "df_result_oei_den": df_oei_den,
+        "df_result_oei_ind": df_oei_ind,
+        "df_result_aei_den": df_aei_den,
+        "df_result_aei_ind": df_aei_ind,
+    })
+
+    st.success("✅ Comparaciones completadas")
+
+    # ===============================
+    # 3️⃣ Mostrar resultados individuales
+    # ===============================
+    st.header("📋 Resultados de comparaciones")
+
+    tabs = st.tabs([
+        "OEI (Denominación)",
+        "OEI (Indicador)",
+        "AEI (Denominación)",
+        "AEI (Indicador)"
+    ])
+
+    for tab, (titulo, key) in zip(
+        tabs,
+        [
+            ("OEI (Denominación)", "df_result_oei_den"),
+            ("OEI (Indicador)", "df_result_oei_ind"),
+            ("AEI (Denominación)", "df_result_aei_den"),
+            ("AEI (Indicador)", "df_result_aei_ind"),
+        ]
+    ):
+        with tab:
+            df_result = st.session_state[key]
+ 
+            if isinstance(df_result, pd.io.formats.style.Styler):
+                st.dataframe(df_result, use_container_width=True)
             else:
-                st.error(f"No se encontró la tabla {tipo_comparacion} en el documento subido.")
-                st.stop()
+                st.dataframe(df_result, use_container_width=True)
+   
+    # ===============================
+    # 4️⃣ Resumen estadístico (sin promedio general)
+    # ===============================
+    st.header("📈 Resumen de Resultados")
 
-        # Mostrar resultados
-        st.success(f"✅ Comparación completada para {tipo_comparacion}")
-        st.dataframe(df_result, use_container_width=True)
+    def calcular_estadisticas(df):
+        if isinstance(df, pd.io.formats.style.Styler):
+            df = df.data
+        if df is None or df.empty:
+            return 0
+        total = len(df)
+        exactas = (df["Resultado"] == "Coincidencia exacta").sum()
+        parciales = (df["Resultado"] == "Coincidencia parcial").sum()
+        no_coincide = (df["Resultado"] == "No coincide").sum()
+        return {
+            "Total": total,
+            "Exactas": exactas,
+            "Parciales": parciales,
+            "No coincide": no_coincide,
+            "% Exactas": round(exactas / total * 100, 1) if total else 0,
+            "% Parciales": round(parciales / total * 100, 1) if total else 0,
+            "% No coincide": round(no_coincide / total * 100, 1) if total else 0,
+        }
 
-        # Descargar archivo resultante
-        nombre_salida = f"resultado_comparacion_{tipo_comparacion}.xlsx"
-        df_result.to_excel(nombre_salida, index=False)
+    resumen_data = []
+    comparaciones = {
+        "OEI (Denominación)": "df_result_oei_den",
+        "OEI (Indicador)": "df_result_oei_ind",
+        "AEI (Denominación)": "df_result_aei_den",
+        "AEI (Indicador)": "df_result_aei_ind"
+    }
 
-        with open(nombre_salida, "rb") as f:
-            st.download_button(
-                label="⬇️ Descargar resultado en Excel",
-                data=f,
-                file_name=nombre_salida,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    for nombre, key in comparaciones.items():
+        df = st.session_state[key]
+        stats = calcular_estadisticas(df)
+        resumen_data.append({
+            "Comparación": nombre,
+            **stats
+        })
+
+    df_resumen = pd.DataFrame(resumen_data)
+    st.dataframe(df_resumen, use_container_width=True)
+    st.session_state["df_resumen"] = df_resumen
+
+    # ===============================
+    # 5️⃣ Exportar a Excel consolidado
+    # ===============================
+    st.header("📤 Exportar Resultados")
+
+    def exportar_excel():
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
+            for nombre, key in comparaciones.items():
+                df = st.session_state[key]
+                if isinstance(df, pd.io.formats.style.Styler):
+                    df = df.data
+                df.to_excel(writer, sheet_name=nombre.replace(" ", "_"), index=False)
+        output.seek(0)
+        return output
+
+    excel_bytes = exportar_excel()
+
+    st.download_button(
+        label="⬇️ Descargar Excel Consolidado",
+        data=excel_bytes,
+        file_name="Comparativo_PEIGL_Completo.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
 else:
-    st.info("Sube un archivo Word o PDF para comenzar.")
+    st.info("📁 Sube un archivo Word o PDF para iniciar la comparación.")
