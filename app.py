@@ -62,19 +62,11 @@ if uploaded_file:
         with tab:
             df_result = st.session_state[key]
  
-            #if isinstance(df_result, pd.io.formats.style.Styler):
-            #    st.dataframe(df_result, use_container_width=True)
-            #else:
-            #    st.dataframe(df_result, use_container_width=True)
-
-            # ✅ Ajustar índice para que empiece desde 1
             if isinstance(df_result, pd.io.formats.style.Styler):
-                df_result.data.index = df_result.data.index + 1
+                st.dataframe(df_result, use_container_width=True)
             else:
-                df_result.index = df_result.index + 1
-    
-            st.dataframe(df_result, use_container_width=True)
-    
+                st.dataframe(df_result, use_container_width=True)
+   
     # ===============================
     # 4️⃣ Resumen estadístico (sin promedio general)
     # ===============================
