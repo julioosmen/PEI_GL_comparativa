@@ -7,7 +7,7 @@ from io import BytesIO
 
 RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
 
-st.set_page_config(page_title="Analizador PEI GL – extracción y comparación de OEI/AEI", layout="wide")
+st.set_page_config(page_title="Comparador PEI-GL", layout="wide")
 st.title("📊 Comparador de elementos PEI de los Gobiernos Locales")
 
 # ===============================
