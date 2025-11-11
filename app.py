@@ -4,6 +4,7 @@ from io import BytesIO
 from modules.extract_tables import extraer_tablas
 from modules.compare_oei import comparar_oei
 from modules.compare_aei import comparar_aei
+from modules.compare_oei import comparar_oei_ind
 
 # === FUNCIÓN PARA GENERAR RESUMEN ===
 def generar_resumen(df_oei=None, df_aei=None):
