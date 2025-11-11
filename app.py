@@ -38,41 +38,43 @@ if uploaded_file:
 
     st.success("✅ Comparaciones completadas")
 
-    # ===============================
+    # =====================================
     # 3️⃣ Mostrar resultados individuales
-    # ===============================
-    st.header("📋 Resultados de Comparaciones")
+    # =====================================
+    st.subheader("📊 Resultados de comparaciones")
+    
+    if resultado_oei is not None:
+        st.markdown("### Comparación OEI")
+        df_result = resultado_oei
+    
+        # 🔹 Si es diccionario, tomar el DataFrame principal
+        if isinstance(df_result, dict):
+            df_result = df_result.get("data", None)
+    
+        # 🔹 Verificar si es un Styler (con formato de colores)
+        if hasattr(df_result, "render") and hasattr(df_result, "data"):
+            df_result.data.index = range(1, len(df_result.data) + 1)
+            st.dataframe(df_result, use_container_width=True)
+        elif isinstance(df_result, pd.DataFrame):
+            df_result.index = range(1, len(df_result) + 1)
+            st.dataframe(df_result, use_container_width=True)
+    
+    if resultado_aei is not None:
+        st.markdown("### Comparación AEI")
+        df_result = resultado_aei
+    
+        # 🔹 Si es diccionario, tomar el DataFrame principal
+        if isinstance(df_result, dict):
+            df_result = df_result.get("data", None)
+    
+        # 🔹 Verificar si es un Styler
+        if hasattr(df_result, "render") and hasattr(df_result, "data"):
+            df_result.data.index = range(1, len(df_result.data) + 1)
+            st.dataframe(df_result, use_container_width=True)
+        elif isinstance(df_result, pd.DataFrame):
+            df_result.index = range(1, len(df_result) + 1)
+            st.dataframe(df_result, use_container_width=True)
 
-    tabs = st.tabs([
-        "OEI (Denominación)",
-        "OEI (Indicador)",
-        "AEI (Denominación)",
-        "AEI (Indicador)"
-    ])
-
-    for tab, (titulo, key) in zip(
-        tabs,
-        [
-            ("OEI (Denominación)", "df_result_oei_den"),
-            ("OEI (Indicador)", "df_result_oei_ind"),
-            ("AEI (Denominación)", "df_result_aei_den"),
-            ("AEI (Indicador)", "df_result_aei_ind"),
-        ]
-    ):
-        with tab:
-            df_result = st.session_state[key]
-        
-            if isinstance(df_result, pd.io.formats.style.Styler):
-                # 🔹 Crear una copia temporal solo para mostrar el índice desde 1
-                df_show = df_result.data.copy()
-                df_show.index = range(1, len(df_show) + 1)
-                st.dataframe(df_show.style
-                             .apply(lambda _: df_result.export().ctx_apply, axis=None)
-                             .set_properties(**{'border-color': 'inherit'}),
-                             use_container_width=True)
-            else:
-                df_result.index = range(1, len(df_result) + 1)
-                st.dataframe(df_result, use_container_width=True)
     
     # ===============================
     # 4️⃣ Resumen estadístico (sin promedio general)
