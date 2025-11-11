@@ -3,6 +3,7 @@ import re
 import unicodedata
 import difflib
 from sentence_transformers import SentenceTransformer, util
+import torch
 
 def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
     """
@@ -12,7 +13,9 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
     Devuelve (df_resultado, df_estilizado).
     """
 
-    modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    #modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2', device=device)
     HOJA_ESTANDAR = "OEI"
     COL_EST_TEXTO = "Denominación de OEI / AEI / AO"
     COL_EST_CODIGO = "Código"
