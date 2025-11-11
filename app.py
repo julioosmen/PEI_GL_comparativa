@@ -62,17 +62,15 @@ if uploaded_file:
         with tab:
             df_result = st.session_state[key]
         
-            # Obtener el DataFrame base (aunque sea Styler)
             if isinstance(df_result, pd.io.formats.style.Styler):
-                df_to_show = df_result.data.copy()
+                # 🔹 Ajustar índice del DataFrame que contiene el Styler
+                df_styled = df_result
+                df_styled.data.index = range(1, len(df_styled.data) + 1)
+                st.dataframe(df_styled, use_container_width=True)
             else:
-                df_to_show = df_result.copy()
-        
-            # 🔹 Ajustar índice para que empiece desde 1
-            df_to_show.index = range(1, len(df_to_show) + 1)
-        
-            # Mostrar con el índice ajustado
-            st.dataframe(df_to_show, use_container_width=True)
+                # 🔹 Si no tiene estilo, igual ajustamos el índice
+                df_result.index = range(1, len(df_result) + 1)
+                st.dataframe(df_result, use_container_width=True)
     
     # ===============================
     # 4️⃣ Resumen estadístico (sin promedio general)
