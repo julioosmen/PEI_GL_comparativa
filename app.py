@@ -41,7 +41,7 @@ if uploaded_file:
     # ===============================
     # 3️⃣ Mostrar resultados individuales
     # ===============================
-    st.header("📋 Resultados de Comparaciones")
+    st.header("📋 Resultados de comparaciones")
 
     tabs = st.tabs([
         "OEI (Denominación)",
