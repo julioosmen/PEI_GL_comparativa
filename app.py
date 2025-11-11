@@ -5,9 +5,9 @@ from modules.compare_oei import comparar_oei, comparar_oei_ind
 from modules.compare_aei import comparar_aei, comparar_aei_ind
 from io import BytesIO
 
-RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
+RUTA_ESTANDAR = "data/Extraer_por_elemento_MEGL.xlsx"
 
-st.set_page_config(page_title="Comparador de elementos PEI de los Gobiernos Locales", layout="wide")
+st.set_page_config(page_title="Analizador PEI GL – extracción y comparación de OEI/AEI", layout="wide")
 st.title("📊 Comparador de elementos PEI de los Gobiernos Locales")
 
 # ===============================
@@ -38,44 +38,34 @@ if uploaded_file:
 
     st.success("✅ Comparaciones completadas")
 
-    # =====================================
+    # ===============================
     # 3️⃣ Mostrar resultados individuales
-    # =====================================
-    st.subheader("📊 Resultados de comparaciones")
-    
-    if resultado_oei is not None:
-        st.markdown("### Comparación OEI")
-        df_result = resultado_oei
-    
-        # 🔹 Si es diccionario, tomar el DataFrame principal
-        if isinstance(df_result, dict):
-            df_result = df_result.get("data", None)
-    
-        # 🔹 Verificar si es un Styler (con formato de colores)
-        if hasattr(df_result, "render") and hasattr(df_result, "data"):
-            df_result.data.index = range(1, len(df_result.data) + 1)
-            st.dataframe(df_result, use_container_width=True)
-        elif isinstance(df_result, pd.DataFrame):
-            df_result.index = range(1, len(df_result) + 1)
-            st.dataframe(df_result, use_container_width=True)
-    
-    if resultado_aei is not None:
-        st.markdown("### Comparación AEI")
-        df_result = resultado_aei
-    
-        # 🔹 Si es diccionario, tomar el DataFrame principal
-        if isinstance(df_result, dict):
-            df_result = df_result.get("data", None)
-    
-        # 🔹 Verificar si es un Styler
-        if hasattr(df_result, "render") and hasattr(df_result, "data"):
-            df_result.data.index = range(1, len(df_result.data) + 1)
-            st.dataframe(df_result, use_container_width=True)
-        elif isinstance(df_result, pd.DataFrame):
-            df_result.index = range(1, len(df_result) + 1)
-            st.dataframe(df_result, use_container_width=True)
+    # ===============================
+    st.header("📋 Resultados de Comparaciones")
 
-    
+    tabs = st.tabs([
+        "OEI (Denominación)",
+        "OEI (Indicador)",
+        "AEI (Denominación)",
+        "AEI (Indicador)"
+    ])
+
+    for tab, (titulo, key) in zip(
+        tabs,
+        [
+            ("OEI (Denominación)", "df_result_oei_den"),
+            ("OEI (Indicador)", "df_result_oei_ind"),
+            ("AEI (Denominación)", "df_result_aei_den"),
+            ("AEI (Indicador)", "df_result_aei_ind"),
+        ]
+    ):
+        with tab:
+            df_result = st.session_state[key]
+            if isinstance(df_result, pd.io.formats.style.Styler):
+                st.dataframe(df_result, use_container_width=True)
+            else:
+                st.dataframe(df_result, use_container_width=True)
+
     # ===============================
     # 4️⃣ Resumen estadístico (sin promedio general)
     # ===============================
@@ -121,33 +111,24 @@ if uploaded_file:
     st.session_state["df_resumen"] = df_resumen
 
     # ===============================
-    # 5️⃣ Exportar a Excel consolidado con colores
+    # 5️⃣ Exportar a Excel consolidado
     # ===============================
     st.header("📤 Exportar Resultados")
-    
+
     def exportar_excel():
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            # --- Hoja de resumen (sin estilos) ---
             df_resumen.to_excel(writer, sheet_name="Resumen", index=False)
-    
-            # --- Hojas con formato de color ---
             for nombre, key in comparaciones.items():
                 df = st.session_state[key]
-                sheet_name = nombre.replace(" ", "_")
-    
                 if isinstance(df, pd.io.formats.style.Styler):
-                    # Exportar manteniendo los colores definidos en el Styler
-                    df.to_excel(writer, sheet_name=sheet_name, index=False, engine="openpyxl")
-                else:
-                    # Si no tiene estilos, exportar normalmente
-                    df.to_excel(writer, sheet_name=sheet_name, index=False)
-    
+                    df = df.data
+                df.to_excel(writer, sheet_name=nombre.replace(" ", "_"), index=False)
         output.seek(0)
         return output
-    
+
     excel_bytes = exportar_excel()
-    
+
     st.download_button(
         label="⬇️ Descargar Excel Consolidado",
         data=excel_bytes,
