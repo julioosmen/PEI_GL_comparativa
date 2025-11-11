@@ -5,7 +5,7 @@ from modules.compare_oei import comparar_oei, comparar_oei_ind
 from modules.compare_aei import comparar_aei, comparar_aei_ind
 from io import BytesIO
 
-RUTA_ESTANDAR = "data/Extraer_por_elemento_MEGL.xlsx"
+RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
 
 st.set_page_config(page_title="Analizador PEI GL – extracción y comparación de OEI/AEI", layout="wide")
 st.title("📊 Comparador de elementos PEI de los Gobiernos Locales")
