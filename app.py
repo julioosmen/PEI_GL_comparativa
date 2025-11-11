@@ -5,10 +5,10 @@ from modules.extract_tables import extraer_tablas
 from modules.compare_oei import comparar_oei, comparar_oei_ind
 from modules.compare_aei import comparar_aei, comparar_aei_ind
 
+
 # === FUNCIÓN PARA GENERAR RESUMEN ===
 def generar_resumen(df_oei=None, df_aei=None):
     def procesar(df, tipo):
-        # 👇 Si viene un objeto Styler, obtener el DataFrame original
         if isinstance(df, pd.io.formats.style.Styler):
             df = df.data
 
@@ -53,39 +53,64 @@ st.title("📊 Analizador PEI – Extracción y Comparación de OEI/AEI")
 
 RUTA_ESTANDAR = "Extraer_por_elemento_MEGL.xlsx"
 
+
 # === SECCIÓN DE SUBIDA ===
 st.sidebar.header("📂 Subir archivo PEI")
 archivo_pei = st.sidebar.file_uploader("Selecciona el archivo del PEI (Word o PDF)", type=["pdf", "docx"])
-tipo_comparacion = st.sidebar.radio("Selecciona tipo de comparación", ["OEI", "AEI"])
 
+tipo_comparacion = st.sidebar.radio(
+    "Selecciona tipo de comparación",
+    ["OEI (Denominación)", "OEI (Indicador)", "AEI (Denominación)", "AEI (Indicador)"]
+)
+
+
+# === PROCESAMIENTO ===
 if archivo_pei:
     st.write(f"📁 Archivo subido: **{archivo_pei.name}**")
 
     if st.button("🚀 Iniciar procesamiento"):
-        with st.spinner("Extrayendo tablas relevantes..."):
+        with st.spinner("🔍 Extrayendo tablas relevantes..."):
             tablas = extraer_tablas(archivo_pei)
 
         if not tablas:
             st.error("⚠️ No se encontraron tablas relevantes (OEI o AEI).")
             st.stop()
 
-        with st.spinner("Realizando comparación con estándar..."):
-            if tipo_comparacion == "OEI" and "OEI" in tablas:
-                df_result = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
+        with st.spinner("⚙️ Realizando comparación con estándar..."):
+            df_result, df_result_styled = None, None
+
+            # === COMPARACIONES ===
+            if "OEI" in tipo_comparacion and "OEI" in tablas:
+                if "Indicador" in tipo_comparacion:
+                    df_result = comparar_oei_ind(RUTA_ESTANDAR, tablas["OEI"])
+                else:
+                    df_result = comparar_oei(RUTA_ESTANDAR, tablas["OEI"])
                 st.session_state["df_result_oei"] = df_result
-            elif tipo_comparacion == "AEI" and "AEI" in tablas:
-                df_result = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
+
+            elif "AEI" in tipo_comparacion and "AEI" in tablas:
+                if "Indicador" in tipo_comparacion:
+                    df_result = comparar_aei_ind(RUTA_ESTANDAR, tablas["AEI"])
+                else:
+                    df_result = comparar_aei(RUTA_ESTANDAR, tablas["AEI"])
                 st.session_state["df_result_aei"] = df_result
+
             else:
-                st.error(f"No se encontró la tabla {tipo_comparacion} en el documento subido.")
+                st.error(f"❌ No se encontró la tabla {tipo_comparacion} en el documento subido.")
                 st.stop()
 
+        # === MOSTRAR RESULTADOS ===
         st.success(f"✅ Comparación completada para {tipo_comparacion}")
-        st.dataframe(df_result, use_container_width=True)
 
-        # Descarga individual
-        nombre_salida = f"resultado_comparacion_{tipo_comparacion}.xlsx"
-        df_result.to_excel(nombre_salida, index=False)
+        if df_result_styled is not None:
+            st.dataframe(df_result_styled, use_container_width=True)
+        else:
+            st.dataframe(df_result, use_container_width=True)
+
+        # === DESCARGA INDIVIDUAL ===
+        nombre_salida = f"resultado_{tipo_comparacion.replace(' ', '_').replace('(', '').replace(')', '')}.xlsx"
+        df_salida = df_result.data if isinstance(df_result, pd.io.formats.style.Styler) else df_result
+
+        df_salida.to_excel(nombre_salida, index=False)
         with open(nombre_salida, "rb") as f:
             st.download_button(
                 label=f"⬇️ Descargar resultado {tipo_comparacion}",
@@ -95,8 +120,8 @@ if archivo_pei:
             )
 
 
-# === DESCARGA CONSOLIDADA (Fuera del botón) ===
-if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
+# === DESCARGA CONSOLIDADA ===
+if any(k in st.session_state for k in ["df_result_oei", "df_result_aei"]):
     st.markdown("---")
     st.subheader("📘 Descarga consolidada (Resumen + OEI + AEI)")
 
@@ -106,7 +131,7 @@ if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
     if df_result_oei is not None or df_result_aei is not None:
         resumen = generar_resumen(df_result_oei, df_result_aei)
 
-        # === Contador visual ===
+        # === VISUAL DE MÉTRICAS ===
         st.markdown("### 📊 Resumen de resultados")
         for _, fila in resumen.iterrows():
             st.metric(
@@ -115,14 +140,16 @@ if "df_result_oei" in st.session_state or "df_result_aei" in st.session_state:
                 delta=f"{fila['Coincidencia exacta']} de {fila['Total de elementos']}"
             )
 
-        # === Excel consolidado ===
+        # === CREAR EXCEL CONSOLIDADO ===
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
             resumen.to_excel(writer, index=False, sheet_name="Resumen")
             if df_result_oei is not None:
-                df_result_oei.to_excel(writer, index=False, sheet_name="OEI")
+                df_oei_salida = df_result_oei.data if isinstance(df_result_oei, pd.io.formats.style.Styler) else df_result_oei
+                df_oei_salida.to_excel(writer, index=False, sheet_name="OEI")
             if df_result_aei is not None:
-                df_result_aei.to_excel(writer, index=False, sheet_name="AEI")
+                df_aei_salida = df_result_aei.data if isinstance(df_result_aei, pd.io.formats.style.Styler) else df_result_aei
+                df_aei_salida.to_excel(writer, index=False, sheet_name="AEI")
         output.seek(0)
 
         st.download_button(
