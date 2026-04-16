@@ -14,7 +14,7 @@ def comparar_aei(ruta_estandar, df_aei, umbral=0.75):
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
        
     HOJA_ESTANDAR = "AEI"
-    COLUMNA_ESTANDAR_TEXTO = "Denominación de OEI / AEI / AO"
+    COLUMNA_ESTANDAR_TEXTO = "OEI/AEI"
     COLUMNA_ESTANDAR_CODIGO = "Código"
     COLUMNA_COMPARAR_TEXTO = [
         "Enunciado",
@@ -173,7 +173,7 @@ def comparar_aei_ind(ruta_estandar, df_aei, umbral=0.75):
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
        
     HOJA_ESTANDAR = "AEI"
-    COLUMNA_ESTANDAR_TEXTO = "Nombre del indicador/ Unidad de medida"
+    COLUMNA_ESTANDAR_TEXTO = "Nombre del indicador"
     COLUMNA_ESTANDAR_CODIGO = "Código"
     COLUMNA_COMPARAR_TEXTO = [
         "Nombre del Indicador",
