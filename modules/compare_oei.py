@@ -17,7 +17,7 @@ def comparar_oei(ruta_estandar, df_oei, umbral=0.75):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2', device=device)
     HOJA_ESTANDAR = "OEI"
-    COL_EST_TEXTO = "Denominación de OEI / AEI / AO"
+    COL_EST_TEXTO = "Enunciado"
     COL_EST_CODIGO = "Código"
 
     COL_OPC_TEXTO = [
@@ -149,7 +149,7 @@ def comparar_oei_ind(ruta_estandar, df_oei, umbral=0.75):
 
     modelo = SentenceTransformer('paraphrase-MiniLM-L6-v2')
     HOJA_ESTANDAR = "OEI"
-    COL_EST_TEXTO = "Nombre del indicador/ Unidad de medida"
+    COL_EST_TEXTO = "Nombre del indicador"
     COL_EST_CODIGO = "Código"
 
     COL_OPC_TEXTO = [
